@@ -11,15 +11,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server {
-
     private static Map<String, Connection> connections = new ConcurrentHashMap<>();
+    private static UserInterface userInterface;
+
+    public static void setUserInterface(UserInterface userInterface) {
+        Server.userInterface = userInterface;
+    }
 
     private static class ServerThread extends Thread {
         private Socket socket;
 
         ServerThread(Socket socket) {
             this.socket = socket;
-
         }
 
         private String serverPrepare(Connection connection) throws IOException, ClassNotFoundException {
@@ -52,7 +55,7 @@ public class Server {
                     if (msg.getType() == MessageType.TEXT) {
                         Message new_msg = new Message(MessageType.TEXT, userName + ": " + msg.getData());
                         sendMessageToAllUsers(new_msg);
-                    } else Console.write("Invalid message type");
+                    } else userInterface.write("Invalid message type");
                 } catch (SocketException e) { //Обработка завершения работы клиентом
                     if (e.getMessage().equals("Connection reset")) {
                         return;
@@ -63,16 +66,16 @@ public class Server {
 
         @Override
         public void run() {
-            Console.write("Установлено соединение с удаленным адресом " + socket.getRemoteSocketAddress());
+            userInterface.write("Установлено соединение с удаленным адресом " + socket.getRemoteSocketAddress());
             String userName = "";
             try (Connection con = new Connection(socket)) {
                 userName = serverPrepare(con);
                 Server.sendMessageToAllUsers(new Message(MessageType.USER_ADDED, userName));
                 notifyUsers(con, userName);
                 serverProcess(con, userName);
-                Console.write("Соединение с удаленным адресом " + socket.getRemoteSocketAddress() + " закрыто");
+                userInterface.write("Соединение с удаленным адресом " + socket.getRemoteSocketAddress() + " закрыто");
             } catch (IOException | ClassNotFoundException e) {
-                Console.write("Произошла ошибка при обмене данными с удаленным адресом " + socket.getRemoteSocketAddress());
+                userInterface.write("Произошла ошибка при обмене данными с удаленным адресом " + socket.getRemoteSocketAddress());
             }
             if (!userName.isEmpty()) {
                 connections.remove(userName);
@@ -93,7 +96,16 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        int port = Console.readInt("Введите порт сервера: ");
+        UserInterface userInterface = null;
+        if (args.length == 0 || args[0].equalsIgnoreCase("con")) {
+            userInterface = new Console();
+        }
+        if (args.length > 0 && args[0].equalsIgnoreCase("gui")) {
+//            UserInterface ui = new GUI();
+        }
+        if (userInterface == null) userInterface = new Console();
+        setUserInterface(userInterface);
+        int port = userInterface.readInt("Введите порт сервера: ");
         try (ServerSocket ss = new ServerSocket(port)) {
             while (true) {
                 Socket cs = ss.accept();

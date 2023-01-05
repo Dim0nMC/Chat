@@ -3,12 +3,18 @@ package chat;
 import java.io.IOException;
 import java.net.Socket;
 
+
 public class Client {
     private Connection connection;
     volatile private boolean connected = false;
+    private final UserInterface userInterface;
+
+    public Client(UserInterface userInterface) {
+        this.userInterface = userInterface;
+    }
 
 
-    public class SocketThread extends Thread {
+    public class ClientThread extends Thread {
 
         @Override
         public void run() {
@@ -57,7 +63,7 @@ public class Client {
                         break;
                     }
                     case USER_REMOVED: {
-                        informAboutDeletingNewUser(msg.getData());
+                        informAboutDeletingUser(msg.getData());
                         break;
                     }
                     default: {
@@ -68,15 +74,15 @@ public class Client {
         }
 
         protected void processIncomingMessage(String message) {
-            Console.write(message);
+            userInterface.write(message);
         }
 
         protected void informAboutAddingNewUser(String userName) {
-            Console.write("участник с именем " + userName + " присоединился к чату.");
+            userInterface.write("участник с именем " + userName + " присоединился к чату.");
         }
 
-        protected void informAboutDeletingNewUser(String userName) {
-            Console.write("участник с именем " + userName + " покинул чат.");
+        protected void informAboutDeletingUser(String userName) {
+            userInterface.write("участник с именем " + userName + " покинул чат.");
         }
 
         protected void connectionStatusChanged(boolean connected) {
@@ -88,36 +94,36 @@ public class Client {
     }
 
     public void run() {
-        SocketThread t = new SocketThread();;
+        ClientThread t = new ClientThread();;
         t.setDaemon(true);
         t.start();
         synchronized (this) {
             try {
                 wait();
             } catch (InterruptedException e) {
-                Console.write("Ошибка подключения");
+                userInterface.write("Ошибка подключения");
                 return;
             }
         }
-        if (connected) Console.write("Соединение установлено.\nДля выхода наберите команду 'exit'.");
-            else Console.write("Произошла ошибка во время работы клиента.");
+        if (connected) userInterface.write("Соединение установлено.\nДля выхода наберите команду 'exit'.");
+            else userInterface.write("Произошла ошибка во время работы клиента.");
         while (connected) {
-            String text = Console.readString();
+            String text = userInterface.readString();
             if (text.equals("exit")) break;
             sendTextMessage(text);
         }
     }
 
     protected String getServerAddress() {
-        return Console.readString("Введите ip-адрес сервера: ");
+        return userInterface.readString("Введите ip-адрес сервера: ");
     }
 
     protected int getServerPort() {
-        return Console.readInt("Введите порт сервера: ");
+        return userInterface.readInt("Введите порт сервера: ");
     }
 
     protected String getUserName() {
-        return Console.readString("Введите имя участника: ");
+        return userInterface.readString("Введите имя участника: ");
     }
 
     protected void sendTextMessage(String text) {
@@ -125,11 +131,20 @@ public class Client {
             connection.send(new Message(MessageType.TEXT, text));
         } catch (IOException e) {
             connected = false;
-            Console.write("Произошла ошибка при отправке сообщения");
+            userInterface.write("Произошла ошибка при отправке сообщения");
         }
     }
 
     public static void main(String[] args) {
-        new Client().run();
+        UserInterface userInterface = null;
+        if (args.length == 0 || args[0].equalsIgnoreCase("con")) {
+            userInterface = new Console();
+        }
+        if (args.length > 0 && args[0].equalsIgnoreCase("gui")) {
+//            userInterface = new GUI();
+        }
+        if (userInterface == null) userInterface = new Console();
+        new Client(userInterface).run();
+
     }
 }

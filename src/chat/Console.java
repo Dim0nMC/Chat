@@ -4,14 +4,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-public class Console {
-    private static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+public class Console implements UserInterface {
+    private BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-    public static void write(String message) {
+    @Override
+    public void write(String message) {
         System.out.println(message);
     }
 
-    public static String readString() {
+    @Override
+    public String readString() {
         while (true) {
             try {
                 return br.readLine();
@@ -22,12 +24,14 @@ public class Console {
         }
     }
 
-    public static String readString(String promptText) {
+    @Override
+    public String readString(String promptText) {
         System.out.print(promptText);
         return readString();
     }
 
-    public static int readInt() {
+    @Override
+    public int readInt() {
         while (true) {
             try {
                 return Integer.parseInt(readString());
@@ -37,7 +41,8 @@ public class Console {
         }
     }
 
-    public static int readInt(String promptText) {
+    @Override
+    public int readInt(String promptText) {
         System.out.print(promptText);
         return readInt();
     }
